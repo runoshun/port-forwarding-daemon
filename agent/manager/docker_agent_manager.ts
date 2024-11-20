@@ -1,19 +1,19 @@
-import * as log from "./logging.ts";
-import { DockerDetector } from "./docker_detector.ts";
-import { Forwarder } from "./socat.ts";
-import { deleteSshForwarding } from "./ssh_forwarding.ts";
+import * as log from "../../lib/logging.ts";
+import { DockerDetector } from "../../lib/detector/docker.ts";
+import { SocketForwarder } from "../../lib/forwarder/socket.ts";
+import { deleteSshForwarding } from "../../lib/forwarder/ssh.ts";
+import * as settings from "../../lib/settings.ts";
+import { install_deno_cmd } from "../../lib/deno_install.ts";
+import { dirname } from "jsr:@std/path@1.0.8/dirname";
 
 export class DockerAgentManager {
 	private agents = new Set<string>();
-	private readonly DOCKER_SCRIPT_PATH = "/tmp/docker_server.ts";
-	private readonly DENO_INSTALL_PATH = "/tmp/deno";
-	private readonly DOCKER_LABEL = "auto.port.forwarding.enabled";
 
 	private readonly dockerDetector: DockerDetector;
-	private readonly managerServerForwarder: Forwarder | undefined = undefined;
+	private readonly managerServerForwarder: SocketForwarder | undefined =
+		undefined;
 
 	constructor(
-		dockerServerCode: string,
 		managerServerUrl: string,
 		enableManagerForwarder: boolean = true,
 	) {
@@ -23,24 +23,22 @@ export class DockerAgentManager {
 			: managerServerPort;
 		const managerServerForDockerUrl = `http://host.docker.internal:${managerServerForDockerPort}`;
 
-		Deno.writeTextFileSync(this.DOCKER_SCRIPT_PATH, dockerServerCode);
-
 		// Setup Docker container monitoring
 		this.dockerDetector = new DockerDetector(
-			this.DOCKER_LABEL,
 			(container) => {
 				log.info(`New container detected: ${container.name}`);
 				this.startAgent(container.id, managerServerForDockerUrl);
 			},
 			async (container) => {
 				log.info(`Container stopped: ${container.id}`);
-				this.stopAgent(container.id);
+				this.agents.delete(container.id);
 				await deleteSshForwarding(managerServerUrl, { tag: container.id });
 			},
+			settings.DOCKER_CONTAINER_LABEL,
 		);
 
 		if (enableManagerForwarder) {
-			this.managerServerForwarder = new Forwarder({
+			this.managerServerForwarder = new SocketForwarder({
 				sourceType: "tcp",
 				sourcePort: managerServerForDockerPort,
 				sourceAddress: "0.0.0.0",
@@ -59,15 +57,16 @@ export class DockerAgentManager {
 	}
 
 	private runAgentScript(containerId: string, forwardUrl?: string) {
-		const urlArgs = forwardUrl ? ["--forward-url", forwardUrl] : [];
+		const urlArgs = forwardUrl ? [forwardUrl] : [];
 		const runCmd = new Deno.Command("docker", {
 			args: [
 				"exec",
 				containerId,
-				`${this.DENO_INSTALL_PATH}/bin/deno`,
+				`${settings.DENO_INSTALL_PATH}/bin/deno`,
 				"run",
 				"-A",
-				this.DOCKER_SCRIPT_PATH,
+				settings.MAIN_SCRIPT_PATH,
+				settings.COMMANDS.DOCKER,
 				...urlArgs,
 			],
 		}).spawn();
@@ -76,11 +75,22 @@ export class DockerAgentManager {
 	}
 
 	private async copyAgentScript(containerId: string) {
+		const mkdirCmd = new Deno.Command("docker", {
+			args: [
+				"exec",
+				containerId,
+				"mkdir",
+				"-p",
+				dirname(settings.MAIN_SCRIPT_PATH),
+			],
+		}).spawn();
+		await mkdirCmd.status;
+
 		const copyCmd = new Deno.Command("docker", {
 			args: [
 				"cp",
-				this.DOCKER_SCRIPT_PATH,
-				`${containerId}:${this.DOCKER_SCRIPT_PATH}`,
+				settings.MAIN_SCRIPT_PATH,
+				`${containerId}:${settings.MAIN_SCRIPT_PATH}`,
 			],
 			stdout: "null",
 		}).spawn();
@@ -92,9 +102,9 @@ export class DockerAgentManager {
 			args: [
 				"exec",
 				containerId,
-				"sh",
+				"bash",
 				"-c",
-				`export DENO_INSTALL=${this.DENO_INSTALL_PATH} && curl -fsSL https://deno.land/install.sh | sh`,
+				install_deno_cmd(settings.DENO_INSTALL_PATH),
 			],
 		}).spawn();
 		await installCmd.status;
@@ -107,14 +117,10 @@ export class DockerAgentManager {
 		this.agents.add(containerId);
 	}
 
-	stopAgent(containerId: string) {
-		this.runAgentScript(containerId);
-		this.agents.delete(containerId);
-	}
-
 	async stopAll() {
 		for (const containerId of this.agents.values()) {
-			this.stopAgent(containerId);
+			this.runAgentScript(containerId);
+			this.agents.delete(containerId);
 		}
 		this.dockerDetector.stop();
 		if (this.managerServerForwarder) {

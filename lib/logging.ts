@@ -1,4 +1,4 @@
-import * as log from "jsr:@std/log";
+import * as log from "jsr:@std/log@0.224.9";
 
 const LOG_LEVEL = "DEBUG";
 

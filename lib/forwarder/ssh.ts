@@ -1,13 +1,13 @@
-import * as log from "./logging.ts";
+import * as log from "../logging.ts";
 
-interface ForwardingRequest {
+interface SSHForwardingRequest {
 	localPort: number;
 	remoteHost?: string;
 	remotePort: number;
 	tag?: string;
 }
 
-class SSHForwardingManager {
+class SSHForwarder {
 	private processes: Map<string, { tag?: string }> = new Map();
 
 	constructor(
@@ -27,7 +27,7 @@ class SSHForwardingManager {
 		return cmd.status;
 	}
 
-	async startForwarding(request: ForwardingRequest) {
+	async startForwarding(request: SSHForwardingRequest) {
 		const remoteHost = request.remoteHost ?? "localhost";
 		const key = `${request.localPort}:${remoteHost}:${request.remotePort}`;
 		log.debug(`Starting SSH forwarding: ${key}`);
@@ -68,19 +68,15 @@ class SSHForwardingManager {
 			}
 		}
 	}
-
-	async stopAll() {
-		log.debug(`Stopping all SSH forwarding`);
-		for (const key of this.processes.keys()) {
-			await this.stopForwarding(new RegExp(key));
-		}
-	}
 }
 
 export class SSHForwardingServer {
-	private manager: SSHForwardingManager;
+	private manager: SSHForwarder;
+	public readonly remoteHost: string;
+
 	public readonly port: number;
 	public readonly sshControlPath: string;
+	private server?: Deno.HttpServer;
 
 	constructor({
 		remoteHost,
@@ -92,15 +88,16 @@ export class SSHForwardingServer {
 		serverPort: number;
 	}) {
 		this.sshControlPath = controlPath;
-		this.manager = new SSHForwardingManager(remoteHost, controlPath);
+		this.remoteHost = remoteHost;
+		this.manager = new SSHForwarder(remoteHost, controlPath);
 		this.port = serverPort;
 	}
 
 	start() {
-		Deno.serve({ port: this.port }, async (request) => {
+		this.server = Deno.serve({ port: this.port }, async (request) => {
 			if (request.method === "POST") {
 				try {
-					const body: ForwardingRequest = await request.json();
+					const body: SSHForwardingRequest = await request.json();
 					this.manager.startForwarding(body);
 					return new Response("Forwarding started", { status: 200 });
 				} catch (error) {
@@ -139,14 +136,14 @@ export class SSHForwardingServer {
 		});
 	}
 
-	stop() {
-		return this.manager.stopAll();
+	async stop() {
+		await this.server?.shutdown();
 	}
 }
 
 export async function addSshForwarding(
 	serverUrl: string,
-	request: ForwardingRequest,
+	request: SSHForwardingRequest,
 ) {
 	try {
 		await fetch(serverUrl, {
@@ -170,6 +167,7 @@ export async function deleteSshForwarding(
 	},
 ) {
 	try {
+		log.debug(`Deleting forwarding: ${JSON.stringify(target)}`);
 		const { remotePort, remoteHost } = target;
 		const query = new URLSearchParams();
 		if (remotePort) {

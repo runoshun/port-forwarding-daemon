@@ -1,4 +1,4 @@
-export interface TcpEntry {
+interface TcpEntry {
 	localAddress: string;
 	localPort: number;
 	remoteAddress: string;
@@ -7,7 +7,7 @@ export interface TcpEntry {
 	uid: number;
 }
 
-export class PortWatcher {
+export class PortDetector {
 	private currentPorts: Set<number> = new Set();
 	private intervalId: number | undefined;
 

@@ -13,9 +13,9 @@ export class DockerDetector {
 	private intervalId?: number;
 
 	constructor(
-		private readonly labelSelector: string,
 		private readonly onContainerStart: (container: ContainerInfo) => void,
 		private readonly onContainerStop: (container: ContainerInfo) => void,
+		private readonly labelSelector: string,
 		private readonly interval: number = 1000,
 	) {}
 
@@ -80,10 +80,6 @@ export class DockerDetector {
 	 */
 	start() {
 		if (this.intervalId) return;
-
-		// Initial check
-		this.checkContainers();
-
 		// Start periodic checks
 		this.intervalId = setInterval(() => {
 			this.checkContainers();

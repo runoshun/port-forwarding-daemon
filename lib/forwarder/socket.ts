@@ -1,9 +1,9 @@
 /**
  * Simple socat-like functionality for TCP and Unix domain sockets
  */
-import * as log from "./logging.ts";
+import * as log from "../logging.ts";
 
-export interface ForwardingOptions {
+export interface SocketForwardingOptions {
 	sourceType: "tcp" | "unix";
 	sourceAddress: string;
 	sourcePort?: number;
@@ -12,11 +12,11 @@ export interface ForwardingOptions {
 	targetPort?: number;
 }
 
-export class Forwarder {
+export class SocketForwarder {
 	private server: Deno.Listener | null = null;
 	private connections: Set<Promise<void>> = new Set();
 
-	constructor(private options: ForwardingOptions) {}
+	constructor(private options: SocketForwardingOptions) {}
 
 	forwardingInfo() {
 		return `${this.options.sourceType}://${this.options.sourceAddress}:${this.options.sourcePort} -> ${this.options.targetType}://${this.options.targetAddress}:${this.options.targetPort} on ${Deno.hostname()}`;
@@ -62,7 +62,6 @@ export class Forwarder {
 	async stop() {
 		if (!this.server) return;
 
-		log.debug("[Forwarder] Stopping " + this.forwardingInfo());
 		this.server.close();
 		this.server = null;
 
