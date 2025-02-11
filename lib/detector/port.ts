@@ -1,111 +1,111 @@
 interface TcpEntry {
-	localAddress: string;
-	localPort: number;
-	remoteAddress: string;
-	remotePort: number;
-	state: number;
-	uid: number;
+  localAddress: string;
+  localPort: number;
+  remoteAddress: string;
+  remotePort: number;
+  state: number;
+  uid: number;
 }
 
 export class PortDetector {
-	private currentPorts: Set<number> = new Set();
-	private intervalId: number | undefined;
+  private currentPorts: Set<number> = new Set();
+  private intervalId: number | undefined;
 
-	constructor(
-		private readonly onPortOpen: (port: number) => void,
-		private readonly onPortClose: (port: number) => void,
-		private readonly maxPort: number = 65535,
-		private readonly uid: number = Deno.uid() ?? 0,
-		private readonly interval: number = 1000,
-	) {}
+  constructor(
+    private readonly onPortOpen: (port: number) => void,
+    private readonly onPortClose: (port: number) => void,
+    private readonly maxPort: number = 65535,
+    private readonly uid: number = Deno.uid() ?? 0,
+    private readonly interval: number = 1000,
+  ) {}
 
-	/**
-	 * Parse a line from /proc/net/tcp
-	 */
-	public parseTcpLine(line: string): TcpEntry | null {
-		const parts = line.trim().split(/\s+/);
-		if (parts.length < 12) return null;
+  /**
+   * Parse a line from /proc/net/tcp
+   */
+  public parseTcpLine(line: string): TcpEntry | null {
+    const parts = line.trim().split(/\s+/);
+    if (parts.length < 12) return null;
 
-		// Skip header line
-		if (parts[0] === "sl") return null;
+    // Skip header line
+    if (parts[0] === "sl") return null;
 
-		const [localIp, localPort] = parts[1].split(":");
-		const [remoteIp, remotePort] = parts[2].split(":");
+    const [localIp, localPort] = parts[1].split(":");
+    const [remoteIp, remotePort] = parts[2].split(":");
 
-		return {
-			localAddress: localIp,
-			localPort: parseInt(localPort, 16),
-			remoteAddress: remoteIp,
-			remotePort: parseInt(remotePort, 16),
-			state: parseInt(parts[3], 16),
-			uid: parseInt(parts[7]),
-		};
-	}
+    return {
+      localAddress: localIp,
+      localPort: parseInt(localPort, 16),
+      remoteAddress: remoteIp,
+      remotePort: parseInt(remotePort, 16),
+      state: parseInt(parts[3], 16),
+      uid: parseInt(parts[7]),
+    };
+  }
 
-	/**
-	 * Read and parse /proc/net/tcp
-	 */
-	private async readTcpTable(): Promise<TcpEntry[]> {
-		const content = await Deno.readTextFile("/proc/net/tcp");
-		return content
-			.split("\n")
-			.map((line) => this.parseTcpLine(line))
-			.filter((entry): entry is TcpEntry => entry !== null);
-	}
+  /**
+   * Read and parse /proc/net/tcp
+   */
+  private async readTcpTable(): Promise<TcpEntry[]> {
+    const content = await Deno.readTextFile("/proc/net/tcp");
+    return content
+      .split("\n")
+      .map((line) => this.parseTcpLine(line))
+      .filter((entry): entry is TcpEntry => entry !== null);
+  }
 
-	/**
-	 * Check for new listening ports
-	 */
-	private async checkPorts(initial: boolean = false) {
-		const entries = await this.readTcpTable();
+  /**
+   * Check for new listening ports
+   */
+  private async checkPorts(initial: boolean = false) {
+    const entries = await this.readTcpTable();
 
-		// TCP_LISTEN state is 0x0A
-		const listeningPorts = new Set(
-			entries
-				.filter((entry) => entry.state === 0x0a && entry.uid === this.uid)
-				.map((entry) => entry.localPort),
-		);
+    // TCP_LISTEN state is 0x0A
+    const listeningPorts = new Set(
+      entries
+        .filter((entry) => entry.state === 0x0a && entry.uid === this.uid)
+        .map((entry) => entry.localPort),
+    );
 
-		// Find new ports
-		for (const port of listeningPorts) {
-			if (!this.currentPorts.has(port) && !initial && port <= this.maxPort) {
-				this.onPortOpen(port);
-			}
-		}
-		// Find removed ports
-		for (const port of this.currentPorts) {
-			if (!listeningPorts.has(port) && !initial && port <= this.maxPort) {
-				this.onPortClose(port);
-			}
-		}
+    // Find new ports
+    for (const port of listeningPorts) {
+      if (!this.currentPorts.has(port) && !initial && port <= this.maxPort) {
+        this.onPortOpen(port);
+      }
+    }
+    // Find removed ports
+    for (const port of this.currentPorts) {
+      if (!listeningPorts.has(port) && !initial && port <= this.maxPort) {
+        this.onPortClose(port);
+      }
+    }
 
-		this.currentPorts = listeningPorts;
-	}
+    this.currentPorts = listeningPorts;
+  }
 
-	/**
-	 * Start watching for new listening ports
-	 */
-	start() {
-		if (this.intervalId) return;
+  /**
+   * Start watching for new listening ports
+   */
+  start() {
+    if (this.intervalId) return;
 
-		// Do initial check
-		this.checkPorts(true);
+    // Do initial check
+    this.checkPorts(true);
 
-		// Start periodic checks
-		this.intervalId = setInterval(() => {
-			this.checkPorts();
-		}, this.interval);
-	}
+    // Start periodic checks
+    this.intervalId = setInterval(() => {
+      this.checkPorts();
+    }, this.interval);
+  }
 
-	/**
-	 * Stop watching
-	 */
-	stop() {
-		if (this.intervalId) {
-			clearInterval(this.intervalId);
-			this.intervalId = undefined;
-		}
-	}
+  /**
+   * Stop watching
+   */
+  stop() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+      this.intervalId = undefined;
+    }
+  }
 }
 
 /*

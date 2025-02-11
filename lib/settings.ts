@@ -8,6 +8,6 @@ export const DENO_INSTALL_PATH = "/tmp/port-forwarding-daemon/deno";
 export const DOCKER_CONTAINER_LABEL = "auto.port.forwarding.enabled";
 
 export const COMMANDS = {
-	SSH: "ssh",
-	DOCKER: "docker",
+  SSH: "ssh",
+  DOCKER: "docker",
 };
