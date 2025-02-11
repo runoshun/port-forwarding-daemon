@@ -16,7 +16,7 @@ export const init = (tag: string) => {
     loggers: {
       default: {
         level: LOG_LEVEL,
-        handlers: ["file", "console"],
+        handlers: ["console"],
       },
     },
   });
