@@ -37,7 +37,7 @@ export class DockerDetector {
         return {
           id,
           name,
-          labels: labelValue.split(",").reduce(
+          labels: (labelValue?.split(",") ?? []).reduce(
             (acc, label) => {
               acc[label.split("=")[0]] = label.split("=")[1];
               return acc;

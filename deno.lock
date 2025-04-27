@@ -821,5 +821,23 @@
     "yallist@4.0.0": {
       "integrity": "sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A=="
     }
+  },
+  "remote": {
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/agent/base.ts": "ad54e5722df33034c3d323a339c07b9e636ebf8fbdc5d25a0356078372f33535",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/agent/docker-container.ts": "b56da89771e2900a79f7a8c753d11b1eaab7744610faea220790c0a253ea0a8f",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/agent/local.ts": "4d3fa20593456b4164fdd4cba846dee2c7cb4e9e9717ede7fed57c27724b5ccd",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/agent/manager/docker_agent_manager.ts": "e22b923490157226d132683226219f31683ebf1f1c1deacf1ebc64a4c9d522fd",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/agent/manager/ssh_agent_manager.ts": "38ae56956bc1a8f40fa908b0756c3ed4746a7a2b7becd18f882157ccbf23ca4a",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/agent/ssh.ts": "8c623f7365b0e252713cd4e795abe3d74c18bfaa566d59490eb30b8e995dc340",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/deps.ts": "a6f552d3cb82702a9ddfafc81eab3b7f76d0e11c325faa6ea586e219b1bff6b0",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/bundler.ts": "9adfb7a431a6574d3c790a2dd2e692eee30e382807bf5081166563fb6da0770d",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/deno_install.ts": "2947f69d7338e05479e6c7101566475e56654ccd3c0bfb5bddbe31908cc8c6b4",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/detector/docker.ts": "111b9eed5c91d117675a44644976345210ffc1ba11d41136118b8d420a2de93c",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/detector/port.ts": "ed7081664e657469db6819e9079a9731f396bc6be5ae4aefc59ae93748be7f9f",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/forwarder/socket.ts": "b14c5cd69b82a5dfa302ef07703ebb6931418fc57dfc880853e47a39aeb3ee96",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/forwarder/ssh.ts": "3f3de9c33b942c98f3c17c1239aef49e5eb56968ea1bd7502ebd0406eaab3aae",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/logging.ts": "bfdce83d51738b37370a5d3f044b8ca6d6bbc928c494845b45ba6fe011525008",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/lib/settings.ts": "a3e5f251bb741ef38fa24bd129bdb729483ee38d830ea6f58a41905a6e7dfee9",
+    "https://raw.githubusercontent.com/runoshun/port-forwarding-daemon/refs/heads/main/main.ts": "ea869a971f5ab013cffbfcc3614df76b235475ac38399ff460bc1dafdf1b4e83"
   }
 }
